@@ -1,6 +1,6 @@
 Chapter,Data Set,Variable Name,Description,,,,,,,,,,,,
 10,2006Stocks,Dow,Daily closing values of the Dow Jones Industrial Average ,,,,,,,,,,,,
-10,2006Stocks,S&P,Daily closing values of the Standard and Poor’s 500,,,,,,,,,,,,
+10,2006Stocks,S&P,Daily closing values of the Standard and Poorâ€™s 500,,,,,,,,,,,,
 10,2006Stocks,Nasdaq,Daily closing values of the National Association of Securities Dealers Automated Quotations,,,,,,,,,,,,
 10,2006Stocks,Date,Each buisiness day in 2006,,,,,,,,,,,,
 10,2006Stock2,Index,"Identifies the Dow, S&P, and Nasdaq variables.",,,,,,,,,,,,
