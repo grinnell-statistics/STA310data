@@ -1,0 +1,21 @@
+/*h1{
+    position: relative;
+    left: 255px;
+    font-size: 20px;
+}*/
+.banner{
+    position: relative;
+}
+header{
+    position: relative;
+    background-color: red;
+    font-weight: bold;
+    font-size: 25px;
+    border: 10px;
+    //left:250px;
+   //margin:40px;
+}
+
+.datasets-page {
+    background-color: rgb(176, 194, 232);
+}
