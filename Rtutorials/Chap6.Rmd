@@ -1,0 +1,233 @@
+---
+title: "Chapter6"
+author: "Shonda Kuiper and Ankur Roy"
+date: "2024-8-14"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  pdf_document:
+    toc:no
+  word_document:
+    toc: no
+always_allow_html: true
+---
+## **[Categorical Data Analysis]{.ul}**
+
+**Installing packages and datasets**
+
+The first step in creating an RMD to submit homework assignments is to require and load the needed packages. These packages are already installed on the online RStudio server, but if you are using your own version of R, you will need to install packages first. You cannot install packages in an RMD file, but in the console you will need to type: install.packages(“package_name”). Notice that the package names needs to be in quotes. The suggested packages and how to load them are shown below:
+
+library('tidyr')
+
+library('ggplot2')
+
+library('dplyr')
+
+library('mosaic')
+
+library('readr')
+
+library('easydox')
+
+
+```{r url,eval= TRUE,echo=TRUE,message=FALSE}
+library(readr)
+library(ggplot2)
+library(mosaic)
+library(tidyr)
+library(dplyr)
+library(easydox)
+library(reshape2)
+```
+
+
+For this tutorial, we will be using a new dataset. This data can be found in the `openintro` package.
+
+However, since the two-way table for this is relatively small, we can just recreate the data here. Let's see how.
+
+```{r data, eval=TRUE, echo=TRUE}
+
+# Create a data frame
+df <- data.frame(A = c('Non-transportation workers','Transportation workers','Total'), B = c('35','104','139'),C=c('257','691','948'),D=c('292','795','1087'))
+
+
+colnames(df) <- c("Profession", "Less than 6 hours","More than 6 hours","Total")
+
+
+
+print(df)
+
+```
+
+
+A brief description about the data: This data was collected as part of a survey by the National Sleep Foundation in 2012. Here, two different factors or professions of workers are compared to gauge their sleeping times. One is a control group and the main objective is to understand the hypothesis whether profession of a worker is linked to their sleeping schedule or not.
+
+This is a two-way table with the last row and column being the $Total$ summation of the respective fields.
+
+
+
+
+## **[Visualizing the data]{.ul}**
+
+
+In our dataset, we have two rows and two columns for the different factors in question. Let us try to make a segmented bar graph, to better show the proportion of workers with respect to varying sleep hours. Such graphs can be powerful tools to visualize important details in a concise manner.
+
+```{r data_viz,eval=TRUE,echo=TRUE}
+
+#Segmented bar-graphs
+df_filt_col<- df[colnames(df[-4])]
+df_filt <- filter(df_filt_col,Profession !='Total')
+df_filt
+
+
+# Convert the filtered data to long format
+df_long <- melt(df_filt, id.vars = "Profession", variable.name = "Hours", value.name = "Count")
+
+# View the long format data
+print(df_long)
+
+
+ggplot(df_long, aes(x = Profession, y = Count, fill = Hours)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Comparison of Non-transportation and Transportation Workers", 
+       x = "Profession", y = "Count") +theme_minimal()
+
+
+```
+
+
+
+One of the things we want to verify is whether there is an association between the independent categorical variables $Profession$ and $Hours of Sleep$. So, in order to determine that, we can perform a Chi-square independence test between the two categories. For that, we have to use the `chisq.test()` function.
+
+
+```{r chi_sq,eval=TRUE,echo=TRUE}
+
+
+df_filt$`Less than 6 hours` <- as.numeric(df_filt$`Less than 6 hours`)
+df_filt$`More than 6 hours` <- as.numeric(df_filt$`More than 6 hours`)
+
+#Creating the contigency table
+data_table <- as.matrix(df_filt[,2:3])
+rownames(data_table) <- df_filt$Profession
+
+
+chi_test_result <- chisq.test(data_table)
+
+chi_test_result
+
+
+```
+
+That result implies that we fail to reject the null hypothesis. Since the p-value is 0.7062 and is greater than the 0.05 significance, we conclude that the two independent variables in question here are not associated.
+
+Thus, from the given survey, we cannot propose any kind of association between sleep hours and profession.
+
+You can further explore the other paramters from this chi-square results like $residuals$, $observed$ and $expected$ values by doing as follows:
+
+
+```{r par_chi,eval=TRUE,echo=TRUE}
+
+
+chi_test_result$residuals
+chi_test_result$observed
+chi_test_result$expected
+
+```
+
+
+
+## **[Simulating the data observations]{.ul}**
+
+If you summed up all the counts of observations in our table, you will find it is about ~ 1000. 
+
+This number of observations though substantial cannot definitively define the nature of the distribution of the data. For example, if suppose we want to investigate the distribution of data between the $Profession$ 'Non-transportation workers' and $Sleep Hours$ 'More than 6 hours', the number of counts should be higher. Let us try to do a simulation by increasing the counts to 10000 for this group. 
+
+After that, we will calculate the chi-test statistic for each of those simulations and then construct a histogram to identify the nature of the distribution.
+
+
+
+
+
+First we find out the total no. of entries for $Non-transportation workers$.
+
+```{r chi_simulation,eval=TRUE,echo=TRUE}
+
+non_transportation_row <- df_filt[df_filt$Profession=='Non-transportation workers',]
+
+total_Non <- sum(non_transportation_row[,2:ncol(non_transportation_row)])
+total_Non
+
+```
+
+
+
+Then, we create a simulation of our desired no. of points based on given data, Here $simulated_non_more$ denotes the simulated values for the $Profession$ 'Non-transportation workers' and the sleep hours 'More than 6 hours'. The `rbinom` function helps in generating a binomial distribution of 10000 data points. 
+
+```{r sim,eval=TRUE,echo=TRUE}
+n_simulations=10000
+
+prob_non_more <- df_filt[df$Profession=='Non-transportation workers','More than 6 hours']/total_Non
+
+simulated_non_more <- rbinom(n_simulations,total_Non,prob_non_more)
+
+```
+
+
+
+
+Calculating the Chi-square test statistic for each simulation
+
+
+```{r chi_test,eval=TRUE,echo=TRUE}
+
+chi_test_stat <- numeric(n_simulations)
+
+
+for (i in 1:n_simulations){
+  
+  
+  simulated_non <- c('Less than 6 hours' = total_Non - simulated_non_more[i],
+                     'More than 6 hour'=simulated_non_more[i] )
+  
+  
+  #print(simulated_non)
+  
+  simulated_table <- df_filt
+  
+  simulated_table[simulated_table$Profession=='Non-transportation workers',2:ncol(simulated_table)]<- simulated_non
+                                          
+  
+  chi_test_result <- chisq.test(simulated_table[,2:3])
+  chi_test_stat[i] <- chi_test_result$statistic
+  
+}
+
+
+
+```
+
+
+The above code chunk basically calculates the chi-squared test statistic for each of the 10000 simulations and stores it in the vector named $chi_test_stat$
+
+Well, now it will be intriguing to observe what the graphical representation of the distribution of chi-squared values look like.
+
+
+```{r hist,eval=TRUE,echo=TRUE}
+
+
+
+
+ggplot(data.frame(chi_test_stat), aes(x=chi_test_stat)) + geom_histogram(color='black',fill='red',bins=20) +labs(x='Residuals') +ggtitle('Histogram for Residuals')+
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+
+```
+
+
+As we see here, the histogram for the chi-square test statistics is heavily skewed towards the right. The majority of the results are stacked up in the lower value range and you can view some gaps in between. These gaps are dependent on the binning of the histograms as well as the number of the outliers that maybe present in the data.

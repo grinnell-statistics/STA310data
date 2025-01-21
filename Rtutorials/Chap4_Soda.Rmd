@@ -1,0 +1,454 @@
+---
+title: "Chapter4 "
+author: "Shonda Kuiper and Ankur Roy"
+date: "2024-7-29"
+output:
+  
+  html_document:
+    toc: yes
+    toc_float: 
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+  collapsed: no
+  smooth_scroll: no
+always_allow_html: true
+---
+## **[Designing Factorial Experiments]{.ul}**
+
+**Installing packages and datasets**
+
+The first step in creating an RMD to submit homework assignments is to require and load the needed packages. These packages are already installed on the online RStudio server, but if you are using your own version of R, you will need to install packages first. You cannot install packages in an RMD file, but in the console you will need to type: install.packages(“package_name”). Notice that the package names needs to be in quotes. The suggested packages and how to load them are shown below:
+
+library('tidyr')
+
+library('ggplot2')
+
+library('dplyr')
+
+library('mosaic')
+
+library('readr')
+
+library('easydox')
+
+
+
+After the packages are installed, we will load our data. All datasets from the `Practicing Statistics` Textbook are [here](https://github.com/grinnell-statistics/STA310data):
+
+
+The first dataset which we use called `Soda` is found at this url:
+
+
+```{r url,eval= TRUE,echo=TRUE,message=FALSE}
+
+
+library(readr)
+library(ggplot2)
+library(mosaic)
+library(tidyr)
+library(dplyr)
+library(easydox)
+library(kableExtra)
+library(knitr)
+dataurl<- 'https://raw.githubusercontent.com/grinnell-statistics/STA310data/master/Soda.csv'
+```
+
+With this url, we can read the `Soda` data. Let's assign a variable called
+`soda` to access the data at.
+```{r ex8, eval = TRUE,echo=TRUE}
+soda <- read.csv(dataurl)
+```
+
+
+### **Importing data and visualizing**
+
+Use the names() and dim() functions to get a feel for our data. In the console (not in an RMD) you can type View(soda), to view the dataset.
+
+```{r name_dim,eval=TRUE,echo=TRUE,message=FALSE}
+names(soda)
+dim(soda)
+View(soda)
+```
+
+
+**Note**: A bit about the dataset. This dataset has four columns which lists what the amount of fizz was observed in various carbonated drinks based on parameters like `Tilt` orientation and temperature of the soda bottle. The two drink brands talked about in this dataset are `7-up` and `Pepsi`.
+
+
+
+
+
+## **[Visualizing variances and means]{.ul}**
+
+
+
+### **Boxplots and Scatterplots**
+
+To visualize the variances, we can create boxplots to display comparative plots. Use the following syntax to help display the distribution of `Fizz` values with respect to Soda brands for different tilt orientations, faceted by temperatures.
+
+
+```{r 8_a_var_viz, eval=TRUE}
+
+dox_boxplot(Fizz~Soda+Tilt,Soda,facet=Temp)
+
+dox_scatterplot(Fizz~ Soda+Tilt,Soda, facet= Temp)
+
+```
+
+
+
+From the above plot, you can make an informed decision on whether to use ANOVA to analyze these data. **Note**: The basic assumptions and also the null hypothesis of ANOVA are that variances should be equal across different groups/factors.
+
+
+
+
+In the next part, we will perform a log transformation on the response variable and apply `ANOVA` to calculate the residuals. After that, we will create different diagnostic plots, including one to check for normality of the distribution due to interaction effects.
+
+
+
+
+### **ANOVA and Residual Plots**
+
+The `easydox` package allows you to plot different types of residual plots based on your choice and all of that are customizable.
+
+The main syntax remains the same but you can choose what sort of diagnostic plot you are interested in. The options are as follows:
+
+1. Normal Probability/Q-Q plots
+2. Histograms for residuals
+3. Residual vs Model Fit plots
+4. Residuals vs Order plots
+
+
+
+### **Normal Probability Plot for Residuals**
+
+```{r ex8_b, eval=TRUE}
+
+
+aov_with_log <- dox_aov(log(Fizz) ~ Soda*Tilt*Temp,Soda)
+
+
+aov_without_log<- dox_aov(Fizz ~ Soda*Tilt*Temp,Soda)
+
+
+aov_with_log
+aov_without_log
+
+dox_resid(log(Fizz) ~ Soda*Tilt*Temp,dataset=Soda,plot=1,bins=length(Soda))
+
+
+
+
+```
+
+
+As you can see, the p-value for the model went down when the response variable was transformed. So, the ANOVA performs much better  when the log transformation goes through.
+
+
+
+
+Let's create other diagnostics like histograms, residual plots etc.
+
+
+### **Histograms**
+
+```{r 8_b_gra, eval=TRUE}
+
+dox_resid(log(Fizz) ~ Soda*Tilt*Temp,dataset=Soda,plot=2,bins=9)
+
+
+
+```
+
+
+
+
+
+
+
+### **Residual vs. fitted plot**
+
+```{r 8_b_norm,eval=TRUE}
+
+
+dox_resid(log(Fizz) ~ Soda*Tilt*Temp,dataset=Soda,plot=3,bins=length(Soda))
+
+
+
+
+
+```
+
+
+
+
+
+
+
+### **Residuals vs Observation Order plot**
+```{r res_order, eval=TRUE}
+
+
+
+dox_resid(log(Fizz) ~ Soda*Tilt*Temp,dataset=Soda,plot=4,bins=length(Soda))
+
+
+
+
+
+```
+
+
+Great! We have performed different diagnostic plots which will give us a better idea about the normality and other characteristics of our data. For example, as we know if the residual vs fitted plot exhibited equal scattering of the data points about the midline, the points would be normally ditributed. Investigate the other plots and make your conclusions.
+
+
+Now, let's try to understand the effect of the multiple parameters on our response variable. A good visualization would be to create main effect and interaction plots for `log(Fizz)`.
+
+
+
+
+
+###**Main effect Plots from ANOVA**
+
+It is very easy to create Main Effect and Interaction Effect Plots from the native `easydox` package. The library hosts parameterised functions to create the above type of plots.
+Let us see how. If you want to use a particular dataset to pass inside this function, please make sure that the dataset is already included inside the library. You can check the list of all the datasets by the command `data(package='easydox')`
+
+```{r easydox_main,eval=TRUE}
+
+# Main Effect Plots
+
+dox_main(log(Fizz) ~ Temp+Soda+Tilt , Soda, label="Mean")
+
+```
+
+
+
+###**Interaction effect Plots from ANOVA**
+
+Similarly, there is a one step command to create interaction effect plots between more than one independent parameters.
+
+
+```{r easydox_int, eval=TRUE}
+
+dox_inter(log(Fizz) ~ Soda+Temp,dataset=Soda, label='Mean', text_size = 12)
+
+```
+
+Yes, it is that simple to create and visualize the interaction effects between a pair of parameters. **Note**: When creating such pair plots, the order in which the x-variables are entered matters. For example, we wrote the function argument as log(Fizz) ~ Soda+Temp. Since the `Soda` variable precedes `Temp`, the graph would be plotted for the variation of the response variable `log(Fizz)` versus the factor `Soda` for different values of the second factor i.e. `Temp`.
+
+
+Let us complete the interaction plots for the other two pairs.
+
+```{r easydox_inter_2,eval=TRUE}
+
+
+dox_inter(log(Fizz) ~ Tilt+Soda,dataset=Soda,label='Mean',text_size=12)
+
+
+dox_inter(log(Fizz) ~ Temp+Tilt,dataset=Soda,label='Mean',text_size=12)
+
+```
+
+
+
+
+
+
+
+Now, in case you want to create all the above plots without using the `easydox` package, you can use the following methods.
+
+
+## **[Diagnostic plots with ggplot]{.ul}**
+
+
+
+### **Main Effect Plots**
+
+$Soda$ type
+
+```{r main, eval=TRUE,echo=FALSE}
+
+mean_fizz_soda <-  soda %>% group_by(Soda) %>% summarise(mean_fizz=mean(log(Fizz)))
+
+ggplot(data=mean_fizz_soda,aes(x=Soda,y=mean_fizz,group=1))+geom_point(size=5,color='purple')+geom_line()+labs(title='Soda',y='Mean') + geom_hline(yintercept=-0.75,linetype='solid', color='black')+ylim(-1.75,0.5) +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+```
+
+
+
+$Tilt$ type
+
+```{r main_tilt, eval=TRUE,echo=FALSE}
+mean_fizz_tilt <- soda %>% group_by(Tilt) %>% summarise(mean_fizz=mean(log(Fizz)))
+
+ggplot(data=mean_fizz_tilt,aes(x=Tilt,y=mean_fizz,group=1))+geom_point(size=5,color='purple')+geom_line()+labs(title='Tilt',y='Mean') + geom_hline(yintercept=-0.75,linetype='solid', color='black')+ylim(-1.75,0.5) +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+```
+
+
+
+
+$Fizz$ type
+
+```{r main_temp,eval=TRUE,echo=FALSE}
+
+mean_fizz_temp <- soda %>% group_by(Temp) %>% summarise(mean_fizz=mean(log(Fizz)))
+mean_fizz_temp
+ggplot(data=mean_fizz_temp,aes(x=Temp,y=mean_fizz,group=1))+geom_point(size=5,color='purple')+geom_line()+labs(title='Temp',y='Mean') + geom_hline(yintercept=-0.75,linetype='solid', color='black')+ylim(-1.75,0.5) +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+```
+
+
+
+
+### **Interaction Plots**
+
+
+$Soda$ vs $Tilt$
+
+```{r inter, eval=TRUE,echo=FALSE}
+
+
+mean_fizz_soda_tilt <- soda %>% group_by(Tilt,Soda) %>% summarise(mean_fizz=mean(log(Fizz)),.groups='drop')
+mean_fizz_soda_tilt
+
+ggplot(data=mean_fizz_soda_tilt, aes(x = Tilt, y = mean_fizz, color = Soda, group = Soda)) +
+  geom_point(size = 3) +
+  geom_line()+
+  labs(title = "Interaction Plot for ln(Fizz)  between Soda and Tilt",
+       x = "Tilt",
+       y = "Mean") +
+  theme_minimal() +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+  
+```
+
+
+
+
+
+$Soda$ vs $Temp$  and $Tilt$ vs $Temp$
+
+```{r int_2, eval=TRUE,echo=FALSE}
+
+mean_fizz_soda_temp <- soda %>% group_by(Soda,Temp) %>% summarise(mean_fizz=mean(log(Fizz)),.groups='drop')
+
+mean_fizz_tilt_temp <- soda %>% group_by(Tilt,Temp) %>% summarise(mean_fizz=mean(log(Fizz)),.groups='drop')
+
+
+
+#Interaction Plot for interaction between Soda and Temp
+ggplot(data=mean_fizz_soda_temp, aes(x = Soda, y = mean_fizz, color = Temp, group = Temp)) +
+  geom_point(size = 3) +
+  geom_line()+
+  labs(title = "Interaction Plot for ln(Fizz) between Soda and Temp",
+       x = "Temp",
+       y = "Mean") +
+  theme_minimal() +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+
+
+#Interaction Plot for interaction between Tilt and Temp
+ggplot(data=mean_fizz_tilt_temp, aes(x = Temp, y = mean_fizz, color = Tilt, group = Tilt)) +
+  geom_point(size = 3,color='black') +
+  geom_line()+
+  labs(title = "Interaction Plot for ln(Fizz)  between Tilt and Temp",
+       x = "Temp",
+       y = "Mean") +
+  theme_minimal() +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+```
+
+
+
+
+
+
+### **Residual plots**
+
+
+```{r res,eval=TRUE,echo=TRUE}
+log_fizz= log(soda$Fizz)
+result <- aov(log_fizz ~ Soda*Tilt*Temp, data=soda)
+ggplot(data.frame(result$res),aes(sample=result$res)) + stat_qq(color='red',size=5)+stat_qq_line(color='blue')+labs(title='Normal Proability Plot of Residuals',x='Theoretical Quantiles', y='Sample Quantiles') +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+
+
+
+p <- ggplot(data.frame(result$res), aes(x=result$res)) + geom_histogram(color='black',fill='red',bins=9) +labs(x='Residuals') +ggtitle('Histogram for Residuals')+
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+p
+
+
+model <- lm(log_fizz~ Soda*Tilt*Temp, data=soda)
+res_lm <- resid(model)
+order <- c(1:24)
+
+df_res <- data.frame(Fitted= c(fitted(model)), Residuals=c(res_lm),Order=c(order))
+
+ggplot(data=df_res,aes(x=Fitted, y= Residuals)) +geom_point(size=3, color='blue') +
+  geom_hline(yintercept=0,linetype='solid', color='red') +  xlab("Fitted Values") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Fitted Plot") +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+
+
+
+ggplot(data=df_res,aes(x=Order, y= Residuals)) +geom_point(size=3, color='blue') + geom_line(color='red')+
+  geom_hline(yintercept=0,linetype='solid', color='green') +  xlab("Observation Order") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Order Plot") +
+    theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+p <- ggplot(data=soda, aes(x=interaction(Soda,Tilt,Temp), y=Fizz, color=interaction(Soda,Tilt,Temp))) + 
+  geom_point(size=5)+theme_minimal()+theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1)) + labs(title='Individual plots for Fizz',y='Fizz(cm)') + theme(plot.title=element_text(hjust=0.5))
+  
+p
+
+```
+
+
+
+
+
+
+

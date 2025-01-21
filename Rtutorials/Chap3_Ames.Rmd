@@ -1,0 +1,264 @@
+---
+title: "Chapter3 "
+author: "Shonda Kuiper and Ankur Roy"
+date: "2024-7-29"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  pdf_document:
+    toc:no
+  word_document:
+    toc: no
+always_allow_html: true
+---
+## **[Multiple Regression and Modeling]{.ul}**
+
+**Installing packages and datasets**
+
+The first step in creating an RMD to submit homework assignments is to require and load the needed packages. These packages are already installed on the online RStudio server, but if you are using your own version of R, you will need to install packages first. You cannot install packages in an RMD file, but in the console you will need to type: install.packages(“package_name”). Notice that the package names needs to be in quotes. The suggested packages and how to load them are shown below:
+
+library('tidyr')
+
+library('ggplot2')
+
+library('dplyr')
+
+library('mosaic')
+
+library('readr')
+
+
+After the packages are installed, we will load our data. All datasets from the `Practicing Statistics` Textbook are [here](https://github.com/grinnell-statistics/STA310data):
+
+
+The first dataset which we use called `Ames_housing` is found at this url:
+```{r url,eval= TRUE,echo=TRUE,message=FALSE}
+library(ggplot2)
+library(readr)
+dataurl<- 'https://raw.githubusercontent.com/grinnell-statistics/STA310data/master/Ames_housing.csv'
+
+```
+
+With this url, we can read the `Ames_housing` data. Let's assign a variable called
+`ames` to access the data at.
+```{r ex8, eval = TRUE,echo=TRUE,message=FALSE}
+ames <- read_csv(dataurl)
+```
+
+
+## **[Setting up data]{.ul}**
+
+Use the names() and dim() functions to get a feel for our data. In the console (not in an RMD) you can type View(ames), to view the dataset.
+
+```{r name_dim,eval=TRUE,echo=TRUE,message=FALSE}
+names(ames)
+dim(ames)
+View(ames)
+
+```
+
+
+**Note**: A bit about the dataset. This dataset has multiple columns detailing the various housing parameters for residential homes at Ames, Iowa. 
+
+
+In order to do multiple regression analysis on this dataset, we need to first assess the variable types. As we can see, some of the paramters like `Neighborhood`, `Full_Bath` are categorical variables. They are not continuous. So, in order to use them in our model, we first need to convert it to a **factor** type.
+
+
+```{r fac,eval=TRUE,echo=TRUE}
+
+ames$Neighborhood <- as.factor(ames$Neighborhood)
+ames$Year_Built <- as.factor(ames$Year_Built)
+ames$Central_Air <- as.factor(ames$Central_Air)
+ames$Full_Bath <- as.factor(ames$Full_Bath)
+ames$Half_Bath <- as.factor(ames$Half_Bath)
+ames$Lot_Shape <- as.factor(ames$Lot_Shape)
+```
+
+Now, we need to understand that the response variable here is the `Sale_Price` which is dependent on a cumulative interaction of all other factors. We already identified those factors in the previous cell by the command `names(ames)`. So, we can go ahead now and fit the multiple linear regression model to the data as follows:
+
+
+### **[Model definition]{.ul}**
+```{r mod,eval=TRUE,echo=TRUE}
+model <- lm(formula=Sale_Price ~ Neighborhood+ Gr_Liv_Area+Year_Built+Central_Air+Full_Bath+Half_Bath+Lot_Shape,data=ames)
+```
+
+[Summarising the model]{.ul}
+
+```{r n,eval=TRUE,echo=TRUE}
+summary(model)
+
+```
+You can know a lot about the model performance from the p-value, adjusted R-squared and the error estimates. If you feel some parameters are redundant and can be done without, you can re-fit the data with a second or even third model. When you use `summary` to gauge the efficiency of a model, you can then compare among them.
+
+
+
+
+
+
+## **[Visualizations]{.ul}**
+
+Once, we have created the model with the initial assumptions, let's apply some visualizations to better showcase our results. Now ,of all the parameters, we see that `Gr_Liv_Area` has the lowest p-value. So, it is the most significant variable in the model determining the overall `Sale_Price` of the neighborhood homes. We can do a scatter plot between them to view the relationship. 
+
+
+
+
+
+
+
+### **Scatterplots**
+
+```{r scat_fit,eval=TRUE,echo=TRUE}
+
+ggplot(ames,aes(x=Gr_Liv_Area,y=Sale_Price)) + geom_point(color='red')+
+  geom_smooth(method=lm,se=TRUE)+labs(title='Scatterplot of Sale Price vs Gr Liv Area',x='Living Area',y='Sale Price')+theme_minimal()  + theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right"
+  )
+
+fit <- lm(Sale_Price ~ Gr_Liv_Area,ames)
+summary(fit)
+
+```
+
+You can use `geom_smooth` to plot the line of best-fit between x and y to see the nature and strengths of the correlation. Here, on investigating we see that the R-sq(adj) is ~ 40%. So, we cannot say it has a strong correlation. As, you can see the points are scattered far away from the best-fit line signifying that the correlation is not conclusive.
+
+
+
+
+
+
+### **Scatterplots grouped by parameter**
+```{r scat_group,eval=TRUE}
+
+ggplot(data=ames,aes(x=Gr_Liv_Area,y=Sale_Price,color=Neighborhood,shape=Neighborhood))+geom_point()+scale_shape_manual(values=c(15,16,17,18))+geom_smooth(method=lm,se=FALSE,linewidth=0.7)+scale_color_manual(values=c('skyblue','red','purple','orange'))+ggtitle('Variation of Sale_Price by Living Area and Neighborhood')
+
+#ggsave("test.pdf",plot=p, width=7, height=5,units='in',dpi=600)+theme(plot.title = element_text(hjust=0.5),legend.position = 'center')
+
+```
+
+
+
+
+
+
+## **[Residual Plots]{.ul}**
+
+The residuals in our regression model can tell us a lot of information about the effectiveness of the fit. If the residual points are almost evenly distributed about the horizontal (0,0) line, then they are normally distributed. Let's create a `Residual vs Fits` plot for our previous model.
+
+
+### **Residuals vs Fitted values**
+```{r res_plot,eval=TRUE}
+residuals <- model$residuals
+fitted <- fitted(model)
+
+df_res <- data.frame(Fitted= c(fitted(model)), Residuals=c(residuals))
+
+ggplot(data=df_res,aes(x=Fitted, y= Residuals)) +geom_point(size=2, color='red') +
+  geom_hline(yintercept=0,linetype='solid', color='black') +  xlab("Fitted Values") +  ylab("Residuals") +
+  ggtitle("Residuals vs. Fitted Plot")+ theme(plot.title = element_text(hjust = 0.5),
+    legend.position = "right")
+
+```
+
+
+
+Similarly, one can create different Residual plots  with respect to the other continuous variables in the dataset. Let us see some. First of all, we should add the column for `Residuals` in our `ames` dataset. This will help us to easy access the values.
+
+
+
+
+
+
+### **Residuals vs Gr_Liv_Area (Continuous)**
+
+```{r res_con,eval=TRUE}
+
+#Construct a new column for Model Residuals in our dataset
+ames$Residuals <- c(model$residuals)
+
+
+ggplot(data=ames,aes(x=Gr_Liv_Area, y= Residuals)) +geom_point(size=2, color='red') +
+  geom_hline(yintercept=0,linetype='solid', color='black') +  xlab("Gr_Liv_Area") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Gr_Liv_Area Plot (response is Sale_Price)")+ theme(plot.title = element_text(hjust = 0.5),
+    legend.position = "right")
+
+```
+
+
+
+
+
+
+### **Residuals vs Neighborhood (Categorical)**
+```{r re_cat,eval=TRUE}
+
+
+ggplot(data=ames,aes(x=Neighborhood, y= Residuals)) +geom_point(size=2, color='red') +
+  geom_hline(yintercept=0,linetype='solid', color='black') +  xlab("Neighborhood") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Neighborhood Plot (response is Sale_Price)")+ theme(plot.title = element_text(hjust = 0.5),
+    legend.position = "right")
+
+
+```
+There does not seem to be any skewness associated with this distribution. But, you should check for the others by just replacing the variable names.
+
+
+
+
+
+
+### **Histograms for Residuals**
+```{r hist,eval=TRUE}
+
+ggplot(ames, aes(x=Residuals)) + geom_histogram(color='black',fill='skyblue',bins=10) +labs(x='Residuals',y='Frequency',title='Histogram for the Residuals')+theme_minimal()+theme(plot.title = element_text(hjust = 0.5),
+    legend.position = "right")
+
+```
+
+
+
+
+
+
+
+###**Normal Probability Plot**
+```{r norm_prob,eval=TRUE}
+ggplot(ames, aes(sample = Residuals)) +
+  geom_qq(size=3) +
+  geom_qq_line(color = "red") +
+  ggtitle("Normal Q-Q Plot of Residuals") +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles")  +
+  theme_minimal()
+
+```
+
+
+
+
+
+
+
+### **Residuals vs Observation order**
+```{r ord,eval=TRUE}
+length=nrow(ames)
+order=c(1:length)
+
+ames$Order <- c(order)
+
+ggplot(data=ames,aes(x=Order, y= Residuals)) +geom_point(size=3, color='red') + geom_line(color='blue')+
+  geom_hline(yintercept=0,linetype='solid', color='black') +  xlab("Observation Order") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Order Plot")
+
+```
+
+
+One last ting you can try, is either transforming the response variable or adding higher order variables in the regression equation. Sometimes, either of these tactics can lead to better fit prediction results as evidenced by the residuals and R-sq parameters.
+
+We will be working with log- transformation of variables in the next chapter.

@@ -1,0 +1,171 @@
+---
+title: "Chapter5 "
+author: "Shonda Kuiper and Ankur Roy"
+date: "2024-6-20"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  pdf_document:
+    toc:no
+  word_document:
+    toc: no
+always_allow_html: true
+---
+## **[Block,Split-Plot and Repeated Measure Designs]{.ul}**
+
+**Installing packages and datasets**
+
+The first step in creating an RMD to submit homework assignments is to require and load the needed packages. These packages are already installed on the online RStudio server, but if you are using your own version of R, you will need to install packages first. You cannot install packages in an RMD file, but in the console you will need to type: install.packages(“package_name”). Notice that the package names needs to be in quotes. The suggested packages and how to load them are shown below:
+
+library('tidyr')
+
+library('ggplot2')
+
+library('dplyr')
+
+library('mosaic')
+
+library('readr')
+
+library('easydox')
+
+
+After the packages are installed, we will load our data. All datasets from the `Practicing Statistics` Textbook are [here](https://github.com/grinnell-statistics/STA310data):
+
+
+The first dataset which we use called `Cookies2` is found at this url:
+```{r url,eval= TRUE,echo=TRUE,message=FALSE}
+library(readr)
+library(ggplot2)
+library(mosaic)
+library(tidyr)
+library(dplyr)
+library(easydox)
+dataurl<- 'https://raw.githubusercontent.com/grinnell-statistics/STA310data/master/Cookies2.csv'
+```
+
+With this url, we can read the `Cookies2` data. Let's assign a variable called
+`cookies` to access the data at.
+```{r ex8, eval = TRUE,echo=TRUE,message=FALSE}
+cookies <- read_csv(dataurl)
+View(Cookies2)
+```
+
+**Note**: A bit about the dataset. This dataset has five columns describing cookie types and their characteristics. The determining variable for the popularity of a cookie is estimated by the $Rating$ parameter. The higher the rating, the better the cookie. 
+
+In this dataset, there are some paramters however, which can be considered as whole-plot units while some are spli-plot entities. One of the distinguishing factors between them are, that parameters which are easy to change and hence compare changes come under split-plot factors. For example, in the concerning dataset, the factors $Cookie$, $Ingredient$ and $Time$ are easy to change. Hence, they can be classified under split-plot factors.
+
+
+
+### **Changing the parameters to factor type**
+
+We are changing all the data parameters to `factor` class. This is important, since the $Main Effect$ plots as we will use later on need all the relevant variables to be `factor` type.
+
+```{r lev, eval=TRUE,echo=TRUE}
+Cookies2$Person=factor(Cookies2$Person)
+Cookies2$Cookie=factor(Cookies2$Cookie)
+Cookies2$Ingredient=factor(Cookies2$Ingredient)
+Cookies2$Time=factor(Cookies2$Time)
+
+```
+
+
+
+
+The interesting thing to investigate here would be which factors or interaction between them influence the overall $Rating$ of the cookies.
+
+Let's start us off by performing an $ANOVA$ test. We will use the `dox_aov` command from the `easydox` package for this. We have used the following formula for the $ANOVA$ test, to check for pair interactions only.
+
+```{r aov,eval=TRUE,echo=TRUE}
+
+anova <- dox_aov(Rating ~ Ingredient*Cookie+ Ingredient*Time+Cookie*Time+Person,Cookies2)
+anova
+
+```
+
+
+
+
+
+
+## **[Diagnostic Plots using  `easydox`]{.ul}**:
+
+
+### **Normal Probability and other Residual Plots**
+
+```{r norm, eval=TRUE,echo=TRUE}
+
+dox_resid(Rating ~ Ingredient*Cookie+ Ingredient*Time+Cookie*Time+Person, data=Cookies2, plot = "All", bins = 10)
+
+
+```
+
+
+
+
+
+
+### **Main Effect Plots**
+
+We here use the `dox_main()` function from the `easydox` package. As we have already ensured that all the variables concerned are of `factor` type, this function should compile without any errors.
+
+
+```{r me_plot,eval=TRUE,echo=TRUE}
+
+dox_main(Rating ~ Person+Cookie+ Ingredient+Time, data= Cookies2, label="Mean",text_size=2)
+```
+
+
+
+
+### **Interaction Effect Plots**
+
+```{r inte_effect, eval=TRUE,echo=TRUE}
+
+dox_inter(Rating ~ Time+Cookie, Cookies2,label='Mean',text_size=12 )
+dox_inter(Rating ~ Time+Ingredient, Cookies2,label='Mean',text_size=12)
+dox_inter(Rating ~ Cookie+Ingredient, Cookies2,label='Mean',text_size=12)
+
+```
+
+
+
+
+
+### **[Creating Q-Q plots with y-axis as percent probability]{.ul}**
+
+
+
+```{r res,eval=TRUE,echo=TRUE}
+
+anova_lm <- aov(Rating ~ Ingredient*Cookie+ Ingredient*Time+Cookie*Time+Person,Cookies2)
+res <- anova_lm$res
+
+```
+
+
+
+Here, we declare the different probability percentiles on the y-axis. The way we compute the line of best fit is finding out the slope and intercept for the 25th and 75th quantile. After that, it is just a matter of plotting.
+
+
+```{r norm_per, eval=TRUE,echo=TRUE}
+df<-data.frame(x=sort(res),y=qnorm(ppoints(length(res)))) 
+probs <- c(0.01, 0.05, seq(0.1, 0.9, by = 0.1), 0.95, 0.99,0.995)
+qprobs<-qnorm(probs)
+
+xl <- quantile(res, c(0.25, 0.75))
+yl <-  qnorm(c(0.25, 0.75))
+slope <- diff(yl)/diff(xl)
+int <- yl[1] - slope * xl[1]
+ggplot(data = df, aes(x = x, y = y)) + geom_point() + geom_abline(intercept = int,slope = slope,color='blue')+scale_y_continuous(limits=range(qprobs), breaks=qprobs, labels = 100*probs)+labs(y ="Percent" , x="Residuals")
+
+
+
+
+```
+
+
+This Q-Q plot is different from the other Normal probability plot that we obtained from the `easydox` package. Here, the y-axis defines the cumulative probability function for the sample quantiles assuming it is a normal distribution. So, $qnorm$ is used here. However, when we are using quantile values for the x-axis from our data, we should be careful about using `quantile` function and not `qnorm` since the former calculates the quantiles at a certain percentile from the actual data and no pre-conceived assumptions.

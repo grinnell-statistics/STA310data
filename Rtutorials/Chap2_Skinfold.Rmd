@@ -1,0 +1,239 @@
+---
+title: "Chapter2 "
+author: "Shonda Kuiper and Ankur Roy"
+date: "2024-7-29"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  pdf_document:
+    toc:no
+  word_document:
+    toc: no
+---
+## **[Two-sample test, regression and ANOVA]{.ul}**
+
+**Installing packages and datasets**
+
+The first step in creating an RMD to submit homework assignments is to require and load the needed packages. These packages are already installed on the online RStudio server, but if you are using your own version of R, you will need to install packages first. You cannot install packages in an RMD file, but in the console you will need to type: install.packages(“package_name”). Notice that the package names needs to be in quotes. The suggested packages and how to load them are shown below:
+
+library('tidyr')
+
+library('ggplot2')
+
+library('dplyr')
+
+library('mosaic')
+
+library('readr')
+
+
+After the packages are installed, we will load our data. All datasets from the `Practicing Statistics` Textbook are [here](https://github.com/grinnell-statistics/STA310data):
+
+
+The first dataset which we use called `Skinfold` is found at this url:
+```{r url,eval= TRUE,echo=TRUE,message=FALSE}
+library(readr)
+library(ggplot2)
+dataurl<- 'https://raw.githubusercontent.com/grinnell-statistics/STA310data/master/Skinfold.csv'
+```
+
+With this url, we can read the `Skinfold` data. Let's assign a variable called
+`skinfold` to access the data at.
+```{r ex13_read, eval = TRUE}
+skinfold <- read_csv(dataurl)
+```
+
+
+## **[Importing data and visualizing]{.ul}**
+
+Use the names() and dim() functions to get a feel for our data. In the console (not in an RMD) you can type View(skinfold), to view the dataset.
+
+```{r name_dim,eval=TRUE,echo=TRUE}
+names(skinfold)
+dim(skinfold)
+#View(skinfold)
+```
+
+
+**Note**: A bit about the dataset. It has two main columns called `Disease` and `Thickness`. Based on the disease, the skin thickness measurements are made. There is an additional column called `ln(Thickness)` which are just the log_e values of the respective thickness data.
+
+
+
+### **Boxplots**
+
+We use the `geom_boxplot` function to create side by side boxplots for the `skinfold` data grouped by the type of disease. You can customize the colors yourself and the `color` argument inside `geom_boxplot` allows you to choose the border colors for the boxplots.
+
+```{r ex13_box, eval = TRUE}
+p <- ggplot(data=skinfold, aes(x=Disease, y=Thickness,fill=Disease)) + 
+  geom_boxplot(color='black')
+
+p
+
+```
+
+
+
+
+### **Individual Plots**: 
+
+We use `geom_dotplot` to create individual valuer plots for the data. The arguments inside the function define the orientation and nature of the dot points. The `binaxis` 
+
+
+```{r ind_plot,eval=TRUE}
+
+p <- ggplot(data=skinfold, aes(x=Disease, y=Thickness)) + 
+  geom_dotplot(binaxis='y',binwidth=0.5,stackdir='center',dotsize=0.7,color='red',fill='red')
+
+p
+
+```
+The boxplots and dotplots give us information about the variance and mean of the grouped data. As you can see from the boxplot above that the variance for thickness of screen as classified `Crohn's` disease is larger than its counterpart.
+
+
+We compute the mean and sd of the different groups.
+
+```{r norm, eval=TRUE}
+Celiac_mean <- mean(skinfold[skinfold$Disease == "Celiac",]$Thickness)
+Celiac_sd <- sd(skinfold[skinfold$Disease == "Celiac",]$Thickness)
+
+Crohn_mean <- mean(skinfold[skinfold$Disease == "Crohn's",]$Thickness)
+Crohn_sd <- sd(  skinfold[skinfold$Disease == "Crohn's",]$Thickness)
+
+print(paste('The mean and sd for Crohn\'s disease group are', Crohn_mean,round(Crohn_sd,2)))
+
+print(paste('The mean and sd for Celiac disease group are', round(Celiac_mean,2),round(Celiac_sd,2)))
+```
+
+
+
+
+We will check the normality of the data belonging to the two groups by plotting a histogram as well as a Q-Q plot. Let's see how.
+
+First, we create two dataframes by the names of `Celiac` and `Crohn` respectively where we just enter their thickness data. We do this because, it makes the reference to these values much easier, when using `geom_histogram` as shown below.
+
+```{r norm_mean, eval=TRUE}
+Celiac <- data.frame(value=skinfold[skinfold$Disease == "Celiac",]$Thickness)
+Crohn <- data.frame(value=skinfold[skinfold$Disease == "Crohn's",]$Thickness)
+
+#Histograms
+ggplot(Celiac,aes(x=value))+    geom_histogram(color='black',fill='orange',bins=10)+labs(title='Celiac deisease')
+
+ggplot(Crohn,aes(x=value))+    geom_histogram(color='black',fill='red',bins=10)+labs(title='Crohn disease')
+
+
+# Q-Q plots
+ggplot(Celiac,aes(sample=value))+ stat_qq(color='orange',size=5)+stat_qq_line()+labs(title = "Normal Q-Q Plot(Celiac disease)", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Crohn,aes(sample=value))+ stat_qq(color='red',size=5)+stat_qq_line()+labs(title = "Normal Q-Q Plot (Crohn\'s disease)", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+### **Calculate ANOVA model estimates to create normal probability plot of the residuals**
+
+We use the `aov` function to perform Type-I ANOVA test. The keyword `res` helps you fetch the residuals after the fit.
+
+```{r log_trans, eval = TRUE}
+residuals <- aov( Thickness~ Disease, data = skinfold)$res
+
+
+ggplot(mapping = aes(sample = residuals)) +
+  stat_qq(size=5) + 
+  stat_qq_line(color = "green") +
+  labs(title = "Normal Q-Q Plot for Residuals", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+
+### **Residuals versus Fit plot**
+
+Let's try to plot the variation between the residuals obtained from the above method versus the fitted values. First, we compute the fitted values using the keyword `fit`. After that, we create another dataframe called `df_res` which only contains fitted and residual values.
+
+```{r fit,eval=TRUE}
+
+fitted <- aov( Thickness~ Disease, data = skinfold)$fit
+
+df_res <- data.frame(Fitted= c(fitted), Residuals=c(residuals))
+
+ggplot(data=df_res,aes(x=Fitted, y= Residuals)) +geom_point(size=3, color='blue') +
+  geom_hline(yintercept=0,linetype='solid', color='red') +  xlab("Fitted Values") +
+  ylab("Residuals") +
+  ggtitle("Residuals vs. Fitted Plot") 
+
+
+```
+The reason here you see two vertical set of points are because there were two distinct classes of the x-variable here i.e. disease.
+
+
+
+
+
+### **Logarithmic transformation**
+
+For this part, we transform the data to its logarithmic value. However, for our convenience, it is already transformed. So, let's go ahead and make the boxplots for the two groups with transformed responses side by side.
+
+```{r log, eval=TRUE}
+
+p <- ggplot(data=skinfold, aes(x=Disease, y=log(Thickness), fill=Disease)) + 
+  geom_boxplot()
+p
+
+
+Celiac_log <- data.frame(value=skinfold[skinfold$Disease == "Celiac",]$'ln(Thickness)')
+Crohn_log <- data.frame(value=skinfold[skinfold$Disease == "Crohn's",]$'ln(Thickness)')
+
+
+
+#Histograms
+ggplot(Celiac_log,aes(x=value))+    geom_histogram(color='black',fill='orange')+labs(title='Celiac deisease')
+
+ggplot(Crohn_log,aes(x=value))+    geom_histogram(color='black',fill='red')+labs(title='Crohn disease')
+
+
+# Q-Q plots
+ggplot(Celiac_log,aes(sample=value))+ stat_qq(color='orange',size=5)+stat_qq_line()+labs(title = "Normal Q-Q Plot for Celiac", y = "Sample Quantiles", x = "Theoretical Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(Crohn_log,aes(sample=value))+ stat_qq(color='red',size=5)+stat_qq_line()+labs(title = "Normal Q-Q Plot for Crohn's", y = "Sample Quantiles", x = "Theoretical Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+
+
+
+
+### **ANOVA on transformed data**
+For this part, we create the ANOVA model estimates using the transformed data in order to create a normal probability plot of residuals. Here we experiment with one transformation, namely log but the student is advised to choose other transformations as well.
+
+
+```{r summ, eval=TRUE}
+log_thickness <- log(skinfold$Thickness)
+residuals <- aov( log_thickness ~ Disease, data = skinfold)$res
+
+ggplot(mapping = aes(sample = residuals)) +
+  stat_qq(size=5) + 
+  stat_qq_line(color = "green") +
+  labs(title = "Normal Q-Q Plot for Transformed Residuals", y = "Sample Quantiles", x = "Theoretical Quantiles") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+Using the transformed responses, we will contruct an ANOVA table, F-test and the corresponding p-value to distinguish between the different disease types based on their mean thickness.
+
+```{r anova_ftest, eval=TRUE}
+
+result <- aov(log_thickness ~ Disease, data=skinfold)
+summary(result)
+
+```
+
